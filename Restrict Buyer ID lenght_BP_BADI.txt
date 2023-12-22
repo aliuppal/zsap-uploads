@@ -1,0 +1,33 @@
+Restrict Buyer ID lenght of BP to 15 characters
+BADI: BUPA_IDENT_CHECK
+Method: CHECK  
+
+
+
+
+
+METHOD if_ex_bupa_ident_check~check.
+
+
+    IF iv_identificationtype = 'BUP002'.
+
+
+      DATA : len TYPE i.
+
+      len = strlen( iv_identificationnumber ).
+
+      IF len = 15.
+
+      ELSE.
+
+        MESSAGE 'Please Enter 15 Characters in Buyer ID' TYPE 'W' DISPLAY LIKE 'E'.
+
+        LEAVE TO SCREEN sy-dynnr.
+
+
+      ENDIF.
+
+
+    ENDIF.
+
+  ENDMETHOD.

@@ -1,0 +1,126 @@
+*&---------------------------------------------------------------------*
+*& Report ZBPADRSUPLD
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zbptaxnoupld.
+
+DATA: itab LIKE alsmex_tabline OCCURS 0 WITH HEADER LINE.
+TYPES: BEGIN OF t_record,
+         bp      LIKE itab-value,
+         taxtype LIKE itab-value,
+         taxno   LIKE itab-value,
+       END OF t_record.
+DATA: it_record TYPE STANDARD TABLE OF t_record INITIAL SIZE 0,
+      wa_record TYPE t_record.
+DATA: gd_currentrow TYPE i.
+DATA: ifiletable TYPE filetable.
+DATA: xfiletable LIKE LINE OF ifiletable.
+DATA: rc TYPE i.
+
+DATA: businesspartner TYPE  bapibus1006_head-bpartner.
+DATA: taxtype TYPE  bapibus1006tax-taxtype.
+DATA: taxnumber TYPE  bapibus1006tax-taxnumber.
+DATA: it_return TYPE TABLE OF bapiret2.
+
+
+PARAMETER p_infile LIKE rlgrap-filename.
+
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_infile.
+
+  CALL METHOD cl_gui_frontend_services=>file_open_dialog
+    EXPORTING
+*     WINDOW_TITLE            =
+*     DEFAULT_EXTENSION       =
+*     DEFAULT_FILENAME        =
+*     FILE_FILTER             =
+      initial_directory       = 'C:'
+*     MULTISELECTION          =
+    CHANGING
+      file_table              = ifiletable
+      rc                      = rc
+*     USER_ACTION             =
+    EXCEPTIONS
+      file_open_dialog_failed = 1
+      cntl_error              = 2
+      error_no_gui            = 3
+      OTHERS                  = 4.
+  .
+  READ TABLE ifiletable INTO xfiletable INDEX 1.
+  IF sy-subrc = 0.
+    p_infile = xfiletable-filename.
+  ENDIF.
+
+START-OF-SELECTION.
+  CALL FUNCTION 'ALSM_EXCEL_TO_INTERNAL_TABLE'
+    EXPORTING
+      filename                = p_infile
+      i_begin_col             = '1'
+      i_begin_row             = '2'  "Do not require headings
+      i_end_col               = '14'
+      i_end_row               = '31'
+    TABLES
+      intern                  = itab
+    EXCEPTIONS
+      inconsistent_parameters = 1
+      upload_ole              = 2
+      OTHERS                  = 3.
+  IF sy-subrc <> 0.
+    MESSAGE e010(zz) WITH TEXT-001. "Problem uploading Excel Spreadsheet
+  ENDIF.
+  SORT itab BY row col.
+  READ TABLE itab INDEX 1.
+  gd_currentrow = itab-row.
+  LOOP AT itab.
+    IF itab-row NE gd_currentrow.
+      APPEND wa_record TO it_record.
+      CLEAR wa_record.
+      gd_currentrow = itab-row.
+    ENDIF.
+    CASE itab-col.
+      WHEN '0001'.
+        wa_record-bp = itab-value.
+      WHEN '0002'.
+        wa_record-taxtype = itab-value.
+      WHEN '0003'.
+        wa_record-taxno   = itab-value.
+    ENDCASE.
+  ENDLOOP.
+  APPEND wa_record TO it_record.
+  LOOP AT it_record INTO wa_record.
+
+
+    businesspartner = wa_record-bp.
+    taxtype         = wa_record-taxtype.
+    taxnumber       = wa_record-taxno.
+
+    CALL FUNCTION 'BAPI_BUPA_TAX_ADD'
+      EXPORTING
+        businesspartner = businesspartner
+        taxtype         = taxtype
+        taxnumber       = taxnumber
+      TABLES
+        return          = it_return.
+
+*    COMMIT WORK.
+
+    CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+     EXPORTING
+       WAIT          = 'X'
+*     IMPORTING
+*       RETURN        =
+              .
+
+
+    CLEAR businesspartner.
+    CLEAR taxtype.
+    CLEAR taxnumber.
+    CLEAR wa_record.
+    CLEAR it_return[].
+
+
+
+  ENDLOOP.
+
+    MESSAGE 'Updated Successfully' TYPE 'S'.
