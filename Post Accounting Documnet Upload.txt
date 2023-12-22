@@ -1,0 +1,91 @@
+	Program: ZVG_FI_C_ACCOUNTING_DOC_UPLOAD	
+*&---------------------------------------------------------------------*
+*& Include          ZVG_FI_C_VINU_T01
+*&---------------------------------------------------------------------*
+
+DATA: item_no  TYPE  posnr_acc, "Accounting document line item number
+      vbudat   TYPE  dats,        "Posting Date
+      vbldat   TYPE  dats,       "Document Date
+      lv_year  TYPE  bkpf-gjahr,
+      lv_belnr TYPE  bkpf-belnr.
+
+
+data : it_bapiparex type table of bapiparex,
+         wa_bapiparex  type bapiparex.
+
+
+
+DATA: gt_file LIKE TABLE OF alsmex_tabline WITH HEADER LINE.
+
+DATA: gd_documentheader    LIKE bapiache09,
+      gd_documentheader1   LIKE bapiache09,
+      gd_customercpd       LIKE bapiacpa09,
+      gd_customercpd1      LIKE bapiacpa09,
+      it_accountgl         LIKE bapiacgl09 OCCURS 0 WITH HEADER LINE,
+      it_accountreceivable LIKE bapiacar09 OCCURS 0 WITH HEADER LINE,
+      it_accountpayable    LIKE bapiacap09 OCCURS 0 WITH HEADER LINE,
+      it_accounttax        LIKE bapiactx09 OCCURS 0 WITH HEADER LINE,
+      it_currencyamount    LIKE bapiaccr09 OCCURS 0 WITH HEADER LINE,
+      it_criteria          LIKE bapiackec9 OCCURS 0 WITH HEADER LINE,
+      it_valuefield        LIKE bapiackev9 OCCURS 0 WITH HEADER LINE,
+      it_extension1        LIKE bapiacextc OCCURS 0 WITH HEADER LINE,
+      it_return            LIKE bapiret2   OCCURS 0 WITH HEADER LINE,
+      it_paymentcard       LIKE bapiacpc09 OCCURS 0 WITH HEADER LINE,
+      it_contractitem      LIKE bapiaccait OCCURS 0 WITH HEADER LINE,
+      it_extension2        LIKE bapiparex  OCCURS 0 WITH HEADER LINE,
+      it_realestate        LIKE bapiacre09 OCCURS 0 WITH HEADER LINE,
+      it_accountwt         LIKE bapiacwt09 OCCURS 0 WITH HEADER LINE,
+      gt_return            TYPE TABLE OF bapiret2,
+      gt_return1           TYPE TABLE OF bapiret2 WITH HEADER LINE.
+
+DATA: objtype TYPE bapiache01-obj_type,
+      objkey  TYPE bapiache09-obj_key,
+      objsys  TYPE bapiache01-obj_sys.
+
+DATA: BEGIN OF gt_data OCCURS 100,
+
+        srno            TYPE i,            "Sr  No
+        bldat(10)       TYPE c,            "Document date
+        budat(10)       TYPE c,            "Posting date
+        xblnr           TYPE bkpf-xblnr,   " Refrence document
+        bktxt           TYPE bkpf-bktxt,   " Header text
+        bukrs           LIKE bkpf-bukrs,   " Company code
+        blart           LIKE bkpf-blart,   " Document type
+        waers           TYPE bkpf-waers,   " Currency
+        wrbtr           TYPE bseg-wrbtr,   "VALUE
+        shkzg           TYPE bseg-shkzg,   "Debit/Credit Indicator
+        newbs           TYPE newbs,        "Posting key
+        wbs_element     TYPE ps_posid,     "WBS Element
+        newko1          TYPE bseg-lifnr,   "Vendor Account
+        newko2          TYPE bseg-kunnr,   "Customer Account
+        newko           TYPE bseg-hkont,   "General Ledger Account
+        mwskz           TYPE mwskz,        "Tax Code
+        cust_gl_account TYPE hkont,        "Customer GL Account
+        newum           TYPE newum,        "Special GL Ind
+        kostl           TYPE bseg-kostl,   "Cost Center
+        zuonr           TYPE bseg-zuonr,   " ASSIGNMENT
+        sgtxt           TYPE sgtxt,        " Text
+        kidno           TYPE bseg-kidno,   "Payment Reference
+        xref1           TYPE bseg-xref1,   "Reference Key 1
+        xref2           TYPE bseg-xref2,   "Reference Key 2
+        xref3           TYPE bseg-xref3,   "Reference Key 3
+        copa_kostl      TYPE bseg-kostl,   "Cost Center --COPA
+        artnr           TYPE artnr,        "Product
+        kndnr           TYPE c LENGTH 10,  "Customer
+        prctr           TYPE prctr,        "Profit Center
+        contract_no     TYPE ranl,         "Contract Number
+
+      END OF gt_data.
+
+
+DATA: BEGIN OF gt_header OCCURS 100,
+
+        srno      TYPE i,            "Sr  No
+        bldat(10) TYPE c,            "Document date
+        budat(10) TYPE c,            "Posting date
+        xblnr     TYPE bkpf-xblnr,   " Refrence document
+        bktxt     TYPE bkpf-bktxt,   " Header text
+        bukrs     LIKE bkpf-bukrs,   " Company code
+        blart     LIKE bkpf-blart,   " Document type
+
+      END OF gt_header.
