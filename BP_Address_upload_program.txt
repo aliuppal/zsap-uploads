@@ -1,0 +1,260 @@
+*&---------------------------------------------------------------------*
+*& Report ZBPADRSUPLD
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zbpadrsupld.
+
+DATA: itab LIKE alsmex_tabline OCCURS 0 WITH HEADER LINE.
+TYPES: BEGIN OF t_record,
+         bp         LIKE itab-value,
+         building   LIKE itab-value,
+         floor      LIKE itab-value,
+         room       LIKE itab-value,
+         street     LIKE itab-value,
+         house      LIKE itab-value,
+         district   LIKE itab-value,
+         city       LIKE itab-value,
+         difcity    LIKE itab-value,
+         building_a LIKE itab-value,
+         floor_a    LIKE itab-value,
+         room_a     LIKE itab-value,
+         street_a   LIKE itab-value,
+         house_a    LIKE itab-value,
+         district_a LIKE itab-value,
+         city_a     LIKE itab-value,
+         difcity_a  LIKE itab-value,
+       END OF t_record.
+DATA: it_record TYPE STANDARD TABLE OF t_record INITIAL SIZE 0,
+      wa_record TYPE t_record.
+DATA: gd_currentrow TYPE i.
+DATA: ifiletable TYPE filetable.
+DATA: xfiletable LIKE LINE OF ifiletable.
+DATA: rc TYPE i.
+
+DATA: wa_bapibus1006_address TYPE bapibus1006_address.
+DATA: wa_bapibus1006_address_x TYPE bapibus1006_address_x.
+DATA: it_BAPIADVERSORG TYPE TABLE OF bapiad1vd.
+DATA: wa_BAPIADVERSORG TYPE bapiad1vd.
+DATA: it_BAPIADVERSORG_X TYPE TABLE OF bapiad1vdx.
+DATA: wa_BAPIADVERSORG_X TYPE bapiad1vdx.
+DATA: bp TYPE bapibus1006_head-bpartner.
+
+
+PARAMETER p_infile LIKE rlgrap-filename.
+
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_infile.
+
+  CALL METHOD cl_gui_frontend_services=>file_open_dialog
+    EXPORTING
+*     WINDOW_TITLE            =
+*     DEFAULT_EXTENSION       =
+*     DEFAULT_FILENAME        =
+*     FILE_FILTER             =
+      initial_directory       = 'C:'
+*     MULTISELECTION          =
+    CHANGING
+      file_table              = ifiletable
+      rc                      = rc
+*     USER_ACTION             =
+    EXCEPTIONS
+      file_open_dialog_failed = 1
+      cntl_error              = 2
+      error_no_gui            = 3
+      OTHERS                  = 4.
+  .
+  READ TABLE ifiletable INTO xfiletable INDEX 1.
+  IF sy-subrc = 0.
+    p_infile = xfiletable-filename.
+  ENDIF.
+
+START-OF-SELECTION.
+  CALL FUNCTION 'ALSM_EXCEL_TO_INTERNAL_TABLE'
+    EXPORTING
+      filename                = p_infile
+      i_begin_col             = '1'
+      i_begin_row             = '2'  "Do not require headings
+      i_end_col               = '17'
+      i_end_row               = '31'
+    TABLES
+      intern                  = itab
+    EXCEPTIONS
+      inconsistent_parameters = 1
+      upload_ole              = 2
+      OTHERS                  = 3.
+  IF sy-subrc <> 0.
+    MESSAGE e010(zz) WITH TEXT-001. "Problem uploading Excel Spreadsheet
+  ENDIF.
+  SORT itab BY row col.
+  READ TABLE itab INDEX 1.
+  gd_currentrow = itab-row.
+  LOOP AT itab.
+    IF itab-row NE gd_currentrow.
+      APPEND wa_record TO it_record.
+      CLEAR wa_record.
+      gd_currentrow = itab-row.
+    ENDIF.
+    CASE itab-col.
+      WHEN '0001'.
+        wa_record-bp = itab-value.
+      WHEN '0002'.
+        wa_record-building = itab-value.
+      WHEN '0003'.
+        wa_record-floor   = itab-value.
+      WHEN '0004'.
+        wa_record-room   = itab-value.
+      WHEN '0005'.
+        wa_record-street   = itab-value.
+      WHEN '0006'.
+        wa_record-house   = itab-value.
+      WHEN '0007'.
+        wa_record-district   = itab-value.
+      WHEN '0008'.
+        wa_record-city   = itab-value.
+      WHEN '0009'.
+        wa_record-difcity   = itab-value.
+      WHEN '0010'.
+        wa_record-building_a   = itab-value.
+      WHEN '0011'.
+        wa_record-floor_a   = itab-value.
+      WHEN '0012'.
+        wa_record-room_a   = itab-value.
+      WHEN '0013'.
+        wa_record-street_a   = itab-value.
+      WHEN '0014'.
+        wa_record-house_a   = itab-value.
+      WHEN '0015'.
+        wa_record-district_a   = itab-value.
+      WHEN '0016'.
+        wa_record-city_a   = itab-value.
+      WHEN '0017'.
+        wa_record-difcity_a   = itab-value.
+    ENDCASE.
+  ENDLOOP.
+  APPEND wa_record TO it_record.
+  LOOP AT it_record INTO wa_record.
+
+    bp = wa_record-bp.
+
+    wa_bapibus1006_address-building = wa_record-building.
+    wa_bapibus1006_address-floor = wa_record-floor.
+    wa_bapibus1006_address-room_no = wa_record-room.
+    wa_bapibus1006_address-street = wa_record-street.
+    wa_bapibus1006_address-house_no = wa_record-house.
+    wa_bapibus1006_address-district = wa_record-district.
+    wa_bapibus1006_address-city = wa_record-city.
+    wa_bapibus1006_address-home_city = wa_record-difcity.
+
+
+    wa_bapibus1006_address_x-building = 'X'.
+    wa_bapibus1006_address_x-floor = 'X'.
+    wa_bapibus1006_address_x-room_no = 'X'.
+    wa_bapibus1006_address_x-street = 'X'.
+    wa_bapibus1006_address_x-house_no = 'X'.
+    wa_bapibus1006_address_x-district = 'X'.
+    wa_bapibus1006_address_x-city = 'X'.
+    wa_bapibus1006_address_x-home_city = 'X'.
+
+    wa_BAPIADVERSORG-ADDR_VERS = 'A'.
+    wa_BAPIADVERSORG-building = wa_record-building_a.
+    wa_BAPIADVERSORG-floor = wa_record-floor_a.
+    wa_BAPIADVERSORG-room_no = wa_record-room_a.
+    wa_BAPIADVERSORG-street = wa_record-street_a.
+    wa_BAPIADVERSORG-house_no = wa_record-house_a.
+    wa_BAPIADVERSORG-district = wa_record-district_a.
+    wa_BAPIADVERSORG-city = wa_record-city_a.
+    wa_BAPIADVERSORG-home_city = wa_record-difcity_a.
+
+    APPEND wa_BAPIADVERSORG TO it_BAPIADVERSORG.
+
+
+    wa_BAPIADVERSORG_X-ADDR_VERS = 'A'.
+    wa_BAPIADVERSORG_X-building = 'X'.
+    wa_BAPIADVERSORG_X-floor = 'X'.
+    wa_BAPIADVERSORG_X-room_no = 'X'.
+    wa_BAPIADVERSORG_X-street = 'X'.
+    wa_BAPIADVERSORG_X-house_no = 'X'.
+    wa_BAPIADVERSORG_X-district = 'X'.
+    wa_BAPIADVERSORG_X-city = 'X'.
+    wa_BAPIADVERSORG_X-home_city = 'X'.
+
+    APPEND wa_BAPIADVERSORG_X TO it_BAPIADVERSORG_X.
+
+
+
+
+    CALL FUNCTION 'BAPI_BUPA_ADDRESS_CHANGE'
+      EXPORTING
+        businesspartner = bp
+*       ADDRESSGUID     =
+        addressdata     = wa_bapibus1006_address
+        addressdata_x   = wa_bapibus1006_address_x
+*       DUPLICATE_MESSAGE_TYPE        =
+*       ACCEPT_ERROR    = ' '
+*       ADDRESS_DEP_ATTR_DATA         =
+*       ADDRESS_DEP_ATTR_DATA_X       =
+      TABLES
+*       BAPIADTEL       =
+*       BAPIADFAX       =
+*       BAPIADTTX       =
+*       BAPIADTLX       =
+*       BAPIADSMTP      =
+*       BAPIADRML       =
+*       BAPIADX400      =
+*       BAPIADRFC       =
+*       BAPIADPRT       =
+*       BAPIADSSF       =
+*       BAPIADURI       =
+*       BAPIADPAG       =
+*       BAPIAD_REM      =
+*       BAPICOMREM      =
+*       ADDRESSUSAGE    =
+        bapiadversorg   = it_BAPIADVERSORG
+*       BAPIADVERSPERS  =
+*       BAPIADUSE       =
+*       BAPIADTEL_X     =
+*       BAPIADFAX_X     =
+*       BAPIADTTX_X     =
+*       BAPIADTLX_X     =
+*       BAPIADSMT_X     =
+*       BAPIADRML_X     =
+*       BAPIADX40_X     =
+*       BAPIADRFC_X     =
+*       BAPIADPRT_X     =
+*       BAPIADSSF_X     =
+*       BAPIADURI_X     =
+*       BAPIADPAG_X     =
+*       BAPIAD_RE_X     =
+*       BAPICOMRE_X     =
+*       ADDRESSUSAGE_X  =
+        bapiadversorg_x = it_BAPIADVERSORG_X
+*       BAPIADVERSPERS_X              =
+*       BAPIADUSE_X     =
+*       RETURN          =
+*       ADDRESSDUPLICATES             =
+      .
+
+
+   CALL FUNCTION 'BAPI_TRANSACTION_COMMIT'
+     EXPORTING
+       WAIT          = 'X'
+*     IMPORTING
+*       RETURN        =
+              .
+
+
+
+    CLEAR wa_record.
+    CLEAR wa_bapibus1006_address.
+    CLEAR wa_bapibus1006_address_x.
+    CLEAR it_BAPIADVERSORG[].
+    CLEAR wa_BAPIADVERSORG.
+    CLEAR it_BAPIADVERSORG_X[].
+    CLEAR wa_BAPIADVERSORG_X.
+    CLEAR bp.
+
+
+    MESSAGE 'Updated Successfully' TYPE 'S'.
+
+  ENDLOOP.
